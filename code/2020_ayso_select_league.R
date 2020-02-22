@@ -34,22 +34,16 @@ currDate <- Sys.Date()
 # write to rdata
 save(dat_clean, file = paste0(here::here(), "/data/gs_dat_clean_", currDate, ".rda"))
 
+# Filter to Specific Games (League) ---------------------------------------
 
-# Filter and Format  --------------------------------------------------------
-
-# filter to games or tournaments or all
+# filter and factor the positions:
 dat_filt <- dat_clean %>% 
+  mutate(pos = factor(pos, levels=c("GK","RB","CB","LB","RM", "CM", "LM", "Striker"))) %>% 
   filter(grepl("^g", game))
+levels(dat_filt$pos)
 
-dat_filt <- dat_clean %>% 
-  filter(grepl("^t", game))
-
-dat_filt <- dat_clean
-
-dat_df <- left_join(dat_filt, ppos, by="pos") %>% 
-  mutate(pos = factor(pos, levels=c("GK","RB","CB","LB","RM", "CM", "LM", "Striker")))
-levels(dat_df$pos)
-
+# Join the data with the positions
+dat_df <- left_join(dat_filt, ppos, by="pos")
 
 # Temp Plot of Point Density ---------------------------------------------------
 
@@ -63,12 +57,10 @@ levels(dat_df$pos)
 #   theme_bw(base_family = "Roboto Condensed")+
 #   theme_pitch(aspect_ratio = 70/110)
 
-
 # Now add Real Data -------------------------------------------------------
 
-
 # make a player map
-pA <- "Armon"
+pA <- "Shane"
 dat_filt %>% left_join(., ppos, by="pos") %>% 
   filter(player==pA) %>% 
   filter(!is.na(xc)) %>% 
@@ -110,7 +102,7 @@ df_final <- dat_df %>%
   right_join(., df_cumul)
 
 
-# add manual colors:
+# add manual colors for positions
 poscols <- c("GK"="darkorange2", 
              "RB"="darkseagreen", "LB"="darkseagreen",
              "RM"="royalblue", "LM"="royalblue",
