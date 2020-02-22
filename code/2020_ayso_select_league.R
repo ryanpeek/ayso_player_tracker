@@ -18,7 +18,6 @@ sheets_auth(token = drive_token())
 # id: 1BZgFn0cwFgaZB5_xUQ7TQvHiMsVnxP3WseguvuH5tAE
 # read in sheet:
 wb <- drive_get("PlayerTime")
-#wb <- drive_get("1BZgFn0cwFgaZB5_xUQ7TQvHiMsVnxP3WseguvuH5tAE")
 dat_clean <- read_sheet(wb, sheet = 1) %>% 
   janitor::clean_names()  %>% 
   pivot_longer(cols = starts_with("q"), names_to = "quarter", values_to = "player")
@@ -34,8 +33,6 @@ currDate <- Sys.Date()
 
 # write to rdata
 save(dat_clean, file = paste0(here::here(), "/data/gs_dat_clean_", currDate, ".rda"))
-
-
 
 
 # Filter and Format  --------------------------------------------------------
