@@ -29,6 +29,8 @@ sheets_auth(token = drive_token())
 
 # id: 1BZgFn0cwFgaZB5_xUQ7TQvHiMsVnxP3WseguvuH5tAE
 # path: AYSO/U10_Select/GameStats/PlayerTime
+# browse
+#drive_browse("PlayerTime")
 
 # read in sheet:
 wb <- drive_get("PlayerTime")
@@ -47,7 +49,7 @@ ppos <- tibble::tibble(pos=c("GK","RB","CB","LB","RM", "CM", "LM", "Striker"),
 currDate <- Sys.Date()
 
 # write to rdata
-save(dat_clean, file = paste0(here::here(), "/data/gs_dat_clean_", currDate, ".rda"))
+# save(dat_clean, file = paste0(here::here(), "/data/gs_dat_clean_", currDate, ".rda"))
 
 # Filter to Games (PHMSA) ---------------------------------------
 
@@ -66,7 +68,7 @@ dat_df <- left_join(dat_filt, ppos, by="pos")
 # * Single Player -------------------------------------------------
 
 # make a player map
-pA <- "Shane"
+pA <- "Quinlan"
 dat_df %>% 
   filter(player==pA) %>% 
   filter(!is.na(xc)) %>% 
@@ -85,11 +87,11 @@ ggplot(data=dat_df1, aes(x=jitter(xc, 8), y=jitter(yc, 8))) +
 
 # * Total Quarters per Player ------------------------
 
-TotalGames <- dat_df %>% distinct(game) %>% tally() %>% pull(n)
-TotalQtrs <- TotalGames*4
+(TotalGames <- dat_df %>% distinct(game) %>% tally() %>% pull(n))
+(TotalQtrs <- TotalGames*4)
 
 # cumulative quarters
-df_cumul <- dat_df %>% 
+df_cumul <- dat_df %>% ungroup() %>% 
   filter(pos!="Sub", pos!="Gone", !is.na(pos)) %>% 
   distinct(player, game, quarter, .keep_all = TRUE) %>% 
   select(-xc, -yc) %>% 
@@ -98,13 +100,15 @@ df_cumul <- dat_df %>%
   left_join(., dat_df[,c(5,4, 2)], by="player") %>% 
   mutate("PrcntPlay" = (Q_total/(TotalGames*4))) 
 
-df_final <- dat_df %>% 
+df_final <- dat_df %>% ungroup() %>% 
   filter(pos!="Sub", pos!="Gone", !is.na(pos)) %>% 
   distinct(player, game, quarter, .keep_all = TRUE) %>% 
   select(-xc, -yc) %>% 
   group_by(player, game) %>% tally(name="q_game_total") %>% 
   group_by(player) %>% add_count(name="totgames") %>% 
-  right_join(., df_cumul)
+  right_join(., df_cumul) %>% 
+  # drop NAs
+  filter(!is.na(q_game_total))
 
 
 # add manual colors for positions
@@ -133,17 +137,18 @@ ggsave(filename = glue::glue("figs/league_qrtrs_played_per_game_pos_{currDate}.p
 
 
 # plot total percent played
-(gg_gamePrcnt <- df_final %>% 
+(gg_gamePrcnt <- df_final %>% select(-quarter) %>% 
+   distinct(.keep_all=TRUE) %>% 
     ggplot(.) + 
     geom_col(aes(x=player, y=Q_total), width = .1, 
              fill="royalblue", alpha=0.5) +
     ggimage::geom_emoji(aes(x=player, y=Q_total), image = "26bd") +
     geom_point(aes(x=player, y=Q_total, color=PrcntPlay),
-               show.legend = T, size=7, alpha=0.1) + 
+               show.legend = T, size=7, alpha=0.4) +
+    scale_y_continuous(limits = c(0,TotalQtrs), breaks=c(seq(0,12, 2))) +
     labs(y="Quarters Played", x="",
          subtitle="Total Quarters/Percent Played",
          caption=glue::glue("updated: {currDate}")) +
-    ylim(0,TotalQtrs)+
     scale_color_viridis_c("Percent  \nPlayed" , direction = -1)+
     theme_bw() +
     theme(axis.text.x = element_text(angle=70, hjust = 1, vjust=1)))
